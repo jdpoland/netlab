@@ -24,13 +24,15 @@ features:
       unnumbered: True
     ipv6:
       lla: True
+    min_phy_mtu: 1500
+    max_mtu: 9782
   bfd: True
   bgp:
     local_as: True
     vrf_local_as: True
     local_as_ibgp: True
     activate_af: True
-    ipv6_lla: True
+    ipv6_lla: False
   evpn:
     irb: True
     asymmetrical_irb: True
@@ -63,7 +65,7 @@ features:
   vlan:
     model: router
     svi_interface_name: "svi.{vlan}"
-    subif_name: "{ifname}/1:{vlan.access_id}"
+    subif_name: "{ifname}/1_{vlan.access_id}"
     mixed_trunk: True
     native_routed: True
   vrf:

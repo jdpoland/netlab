@@ -1,5 +1,5 @@
 {% from "templates/bgp/sros.gnmi.macro.j2" import bgp_config with context %}
-{% from "templates/ospf/sros.j2" import ospf_config with context %}
+{% from "templates/ospf/sros.j2" import ospf_config,ospf_export_policy with context %}
 
 updates:
 {% for vname,vdata in vrfs.items() %}
@@ -26,11 +26,12 @@ updates:
        ecmp: {{ 2 if 'ixr' in clab.type else 32 }}
 {% endif %}
 
-{% if vdata.bgp is defined %}
+{% if vdata.bgp is defined and 'af' in vdata %}
 {{ bgp_config(vname,vdata.bgp,vdata) }}
 {% endif %}
 
-{% if 'ospf' in vdata %}
+{% if 'ospf' in vdata and 'af' in vdata %}
+{{ ospf_export_policy(vdata.ospf,vname) }}
 {%  for af in ['ipv4','ipv6'] %}
 {%   if af in vdata.af and vdata.af[af] %}
 {{ ospf_config(af,vdata.ospf,vdata.ospf.interfaces,False) }}

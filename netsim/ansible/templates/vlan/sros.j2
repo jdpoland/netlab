@@ -25,7 +25,7 @@ updates:
 {% set sap_id = l.ifname.replace("c1/","") if 'ixr' in clab.type and 'ixr-x' not in clab.type else l.ifname %}
 {% set sap_id = sap_id.replace("eth-","") %}
    sap:
-   - sap-id: {{ sap_id if ':' in sap_id else (sap_id+"/1"+(":0" if native else "")) }}
+   - sap-id: {{ sap_id.replace('_',':') if '_' in sap_id else (sap_id+"/1"+(":0" if native else "")) }}
 {%  if native %}
      description: "Native untagged vlan"
 {%  endif %}
@@ -40,7 +40,7 @@ updates:
    routed-vpls: { }
 
 {% set service_name = l.vrf if l.vrf is defined else 'default' %}
-- path: configure/service/vprn[service-name={{ service_name }}]
+- path: configure/service/{{ 'vprn' if l.vrf is defined else 'ies' }}[service-name={{ service_name }}]
   val:
    interface:
    - interface-name: {{ if_name(l,l.ifname) }}
