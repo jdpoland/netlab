@@ -329,7 +329,8 @@ You can change the license file parameters within a node definition or with **de
 (caveats-vptx)=
 ## Juniper vPTX
 
-* *netlab* release 1.7.0 supports only vJunosEvolved releases that do not require external PFE- and RPIO links. The first vJunosEvolved release implementing internal PFE- and RPIO links is the release 23.2R1-S1.8.
+* *netlab* supports only vJunosEvolved releases that do not require external PFE- and RPIO links. The first vJunosEvolved release implementing internal PFE- and RPIO links is the release 23.2R1-S1.8.
+* vJunosEvolved software is supposed to be run on an Intel CPU. _netlab_ implements the hacks [suggested by Juniper to run vJunos on an AMD CPU](https://www.juniper.net/documentation/us/en/software/nce/nce-510-virtual-switches-mist-cloud-managed/amd-cpu_unofficial_tweaks.html), but please note that this is not supported.
 * The virtual MAC address of the anycast gateway is ignored. _netlab_, therefore, does not support the anycast gateway on vPTX.
 
 The rest of this section lists information you might find helpful if you're a long-time Junos user:
@@ -439,6 +440,15 @@ python3 -m pip install grpcio protobuf==3.20.1
 ```
 sudo pip3 install --upgrade 'ansible>=9.5.1'
 ```
+
+Other caveats:
+
+* In our current implementation, Nokia SR-OS does not propagate EVPN type-5 (IP prefix) routes into VRF routing protocols.
+* We did not implement inter-VRF route leaking. Every VRF is limited to one import and export route target (and they have to match).
+* The SR OS configuration templates do not support additional routing policies on routing protocol route imports
+* An SR OS interface cannot use an unnumbered IPv4 address in combination with IPv6 GUA
+* SR OS requires the IPv6 prefix configured on the global loopback interface to be a /128 prefix. _netlab_ automatically adjusts the **loopback.ipv6** prefix.
+* Nokia SR OS does not accept EBGP EVPN routes with its own AS number in the AS path, even when the **loop-detect-threshold** is configured.
 
 (caveats-sonic)=
 ## Sonic

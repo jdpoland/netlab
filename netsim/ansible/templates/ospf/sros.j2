@@ -1,4 +1,5 @@
 {% from "templates/initial/sros.j2" import if_name, declare_router with context %}
+{% from 'templates/routing/_redistribute.sros.j2' import import_protocols with context %}
 
 {% macro ospf_export_policy(ospf,vrf) %}
 - path: configure/policy-options/policy-statement[name=ospf_{{vrf}}_export]
@@ -6,23 +7,22 @@
     default-action:
       action-type: reject
     entry:
-    - entry-id: 20
-      from:
-        protocol:
-          name: [ bgp ]
-      action:
-        action-type: accept
-    - entry-id: 30
-      from:
-        protocol:
-          name: [ direct ]
-      action:
-        action-type: accept
+{{  import_protocols(ospf.import|default([])) | indent(4,first=True) }}
 {% endmacro %}
 
-{% macro ospf_config(af,ospf,vrf_interfaces,include_system) %}
+{% macro ospf_config(af,ospf,vrf_interfaces,vname='default') %}
 {% set pid = ospf.process|default(0) %}
 {% set ospfv = 'ospf3' if af=='ipv6' else 'ospf' %}
+
+{% if ospf.import is defined %}
+{{   ospf_export_policy(ospf,vname) }}
+{{   declare_router({ 'vrf': vname } if vname != 'default' else {},sub_path="/"+ospfv+"[ospf-instance="+pid|string + "]") }}
+  val:
+    export-policy: [ ospf_{{ vname }}_export ]
+{%   if vname == 'default' %}
+    asbr: {}
+{%   endif %}
+{% endif %}
 
 {% macro ospf_interface(l) %}
 {{ declare_router(l,sub_path="/"+ospfv+"[ospf-instance="+pid|string + "]") }}
@@ -32,9 +32,6 @@
 {%   endif %}
     admin-state: enable
     router-id: {{ ospf.router_id }}
-{%   if l.vrf is defined %}
-    export-policy: [ ospf_{{ l.vrf }}_export ]
-{%   endif %}
     area:
     - area-id: "{{ l.ospf.area }}"
       interface:
@@ -51,8 +48,6 @@
 {%      endif %}
 {%     endif %}
 {%  endif %}
-       # mtu: 1500 # SRL defaults to 1500, now supporting global mtu settings
-{# TODO: Add support for multi-area adjacencies and 'secondary' interface-type #}
 {%  if l.ospf.network_type|default("") in ["broadcast","non-broadcast","point-to-point","point-to-multipoint"] %}
         interface-type: "{{ 'p2mp-nbma' if l.ospf.network_type=='point-to-multipoint' else l.ospf.network_type }}"
 {%  endif %}
@@ -61,16 +56,15 @@
 {%  endif %}
 {% endmacro %}
 
-{% set system_if = { 'ifname': "system", 'ospf': { 'passive': True, 'area': ospf.area }, af: True } %}
-{% for l in vrf_interfaces+([system_if] if include_system else []) if 'ospf' in l and af in l %}
-{{ ospf_interface(l)}}
+{% for intf in vrf_interfaces if 'ospf' in intf and af in intf %}
+{{   ospf_interface(intf) }}
 {% endfor %}
 {% endmacro %}
 
 updates:
 {% if ospf.af.ipv4|default(False) %}
-{{ ospf_config('ipv4',ospf,interfaces,'ipv4' in loopback) }}
+{{   ospf_config('ipv4',ospf,netlab_interfaces) }}
 {% endif %}
 {% if ospf.af.ipv6|default(False) %}
-{{ ospf_config('ipv6',ospf,interfaces,'ipv6' in loopback) }}
+{{   ospf_config('ipv6',ospf,netlab_interfaces) }}
 {% endif %}
